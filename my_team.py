@@ -169,6 +169,11 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         self.in_danger = False
         self.entry = None
 
+    def register_initial_state(self, game_state):
+        super().register_initial_state(game_state)
+        # Forget the crossing chosen in the previous game
+        self.entry = None
+
     def dangerous_ghosts(self, game_state):
         """Positions of the enemy ghosts we can see that are able to eat us."""
         ghosts = []
@@ -266,6 +271,11 @@ class DefensiveReflexAgent(ReflexCaptureAgent):
         super().__init__(index, time_for_computing)
         self.food_target = None
         self.target = None
+
+    def register_initial_state(self, game_state):
+        super().register_initial_state(game_state)
+        # Forget the eaten-food clue from the previous game
+        self.food_target = None
 
     def patrol_point(self, game_state):
         """Border cell closest overall to the food we defend."""
