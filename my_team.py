@@ -277,6 +277,28 @@ class DefensiveReflexAgent(ReflexCaptureAgent):
         # Forget the eaten-food clue from the previous game
         self.food_target = None
 
+        # Steps between any two cells of our side, without leaving our side
+        walls = game_state.get_walls()
+        mid = walls.width // 2
+        home = set(c for c in walls.as_list(False) if (c[0] < mid) == self.red)
+        self.home_dist = {}
+        for source in home:
+            self.home_dist[(source, source)] = 0
+            queue = util.Queue()
+            queue.push(source)
+            while not queue.is_empty():
+                x, y = queue.pop()
+                for cell in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if cell in home and (source, cell) not in self.home_dist:
+                        self.home_dist[(source, cell)] = self.home_dist[(source, (x, y))] + 1
+                        queue.push(cell)
+
+    def home_distance(self, a, b):
+        """Steps from a to b without leaving our side; maze distance if there is no such path."""
+        if (a, b) in self.home_dist:
+            return self.home_dist[(a, b)]
+        return self.get_maze_distance(a, b)
+
     def patrol_point(self, game_state):
         """Border cell closest overall to the food we defend."""
         food = self.get_food_you_are_defending(game_state).as_list()
@@ -318,15 +340,15 @@ class DefensiveReflexAgent(ReflexCaptureAgent):
         invaders = [a for a in enemies if a.is_pacman and a.get_position() is not None]
         features['num_invaders'] = len(invaders)
         if len(invaders) > 0:
-            dists = [self.get_maze_distance(my_pos, a.get_position()) for a in invaders]
+            dists = [self.home_distance(my_pos, a.get_position()) for a in invaders]
             d = min(dists)
             if my_state.scared_timer > 0:
-                # While scared we cannot eat them, so keep 2 steps away
-                features['scared_gap'] = abs(d - 2)
+                # While scared we cannot eat them, so keep 3 steps away
+                features['scared_gap'] = abs(d - 3)
             else:
                 features['invader_distance'] = d
         else:
-            features['target_distance'] = self.get_maze_distance(my_pos, self.target)
+            features['target_distance'] = self.home_distance(my_pos, self.target)
 
         return features
 
